@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>The Blug</title>
+    <link>/</link>
+    <description>Recent content on The Blug</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 09 Nov 2021 16:12:51 +0100</lastBuildDate><atom:link href="/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>First Post</title>
+      <link>/posts/first-post/</link>
+      <pubDate>Tue, 09 Nov 2021 16:12:51 +0100</pubDate>
+      
+      <guid>/posts/first-post/</guid>
+      <description>Welcome to the blug &amp;ldquo;What is the blug ?&amp;rdquo; you may ask. Simple, it&amp;rsquo;s a blog, with bugs.
+In this blog you will find stuff about me, my findings, my interests&amp;hellip;.</description>
+      <content>&lt;h1 id=&#34;welcome-to-the-blug&#34;&gt;Welcome to the blug&lt;/h1&gt;
+&lt;p&gt;&amp;ldquo;What is the blug ?&amp;rdquo; you may ask. Simple, it&amp;rsquo;s a blog, with bugs.&lt;/p&gt;
+&lt;p&gt;In this blog you will find stuff about me, my findings, my interests&amp;hellip;.&lt;/p&gt;
+</content>
+    </item>
+    
+  </channel>
+</rss>
