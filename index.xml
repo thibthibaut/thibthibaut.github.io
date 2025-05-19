@@ -4,4 +4,4 @@ This is a test of using prose to edit my page.</description><content>&lt;h1 id="
 &lt;p>&amp;ldquo;What is the blug ?&amp;rdquo; you may ask. Simple, it&amp;rsquo;s a blog, with bugs.&lt;/p>
 &lt;p>In this blog you will find stuff about me, my findings, my interests&amp;hellip;.&lt;/p>
 &lt;p>This is a test of using prose to edit my page.&lt;/p>
-&lt;p>&lt;img src="%7B%7Bsite.baseurl%7D%7D/content/posts/grelibre.png" alt="this is an image">&lt;/p></content></item></channel></rss>
+&lt;p>&lt;img src="%7B%7Bsite.baseurl%7D%7D/static/grelibre.png" alt="this a random image">&lt;/p></content></item></channel></rss>
