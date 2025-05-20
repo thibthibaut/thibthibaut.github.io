@@ -2,7 +2,7 @@ colorScheme = "forest"
 defaultAppearance = "light"
 autoSwitchAppearance = true
 enableSearch = false
-enableCodeCopy = true
+enableCodeCopy = false
 replyByEmail = false
 disableImageOptimization = false
 disableTextInHeader = false
@@ -27,10 +27,10 @@ showAppearanceSwitcher = true
 showScrollToTop = true
 
 [homepage]
-layout = "page"
+layout = "card"
 showRecent = true
 showRecentItems = 10
-showMoreLink = true
+showMoreLink = false
 showMoreLinkDest = "/posts/"
 cardView = false
 cardViewScreenWidth = false
