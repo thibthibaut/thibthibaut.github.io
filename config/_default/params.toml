@@ -11,10 +11,13 @@ disableTextInHeader = false
 firebase = { }
 fathomAnalytics = { }
 umamiAnalytics = { }
-selineAnalytics = { }
 buymeacoffee = { }
 verification = { }
 rssnext = { }
+
+[selineAnalytics]
+token = "764259767182c5d"
+enableTrackEvent = false
 
 [header]
 layout = "fixed-fill-blur"
