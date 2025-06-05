@@ -1,76 +1,230 @@
 @font-face {
-	font-family: 'Iosevka Custom Web';
+	font-family: 'IosevkaAileTibo Web';
 	font-display: swap;
 	font-weight: 400;
 	font-stretch: condensed;
 	font-style: normal;
-	src: url('/fonts/IosevkaCustom-Condensed.woff2') format('woff2'), url('/fonts/IosevkaCustom-Condensed.ttf') format('truetype');
+	src: url('/fonts/IosevkaAileTibo-Condensed.woff2') format('woff2'), url('/fonts/IosevkaAileTibo-Condensed.ttf') format('truetype');
 }
 
 @font-face {
-	font-family: 'Iosevka Custom Web';
+	font-family: 'IosevkaAileTibo Web';
 	font-display: swap;
 	font-weight: 400;
 	font-stretch: normal;
 	font-style: normal;
-	src: url('/fonts/IosevkaCustom-Regular.woff2') format('woff2'), url('/fonts/IosevkaCustom-Regular.ttf') format('truetype');
+	src: url('/fonts/IosevkaAileTibo-Regular.woff2') format('woff2'), url('/fonts/IosevkaAileTibo-Regular.ttf') format('truetype');
 }
 
 @font-face {
-	font-family: 'Iosevka Custom Web';
+	font-family: 'IosevkaAileTibo Web';
 	font-display: swap;
 	font-weight: 400;
 	font-stretch: condensed;
 	font-style: italic;
-	src: url('/fonts/IosevkaCustom-CondensedItalic.woff2') format('woff2'), url('/fonts/IosevkaCustom-CondensedItalic.ttf') format('truetype');
+	src: url('/fonts/IosevkaAileTibo-CondensedItalic.woff2') format('woff2'), url('/fonts/IosevkaAileTibo-CondensedItalic.ttf') format('truetype');
 }
 
 @font-face {
-	font-family: 'Iosevka Custom Web';
+	font-family: 'IosevkaAileTibo Web';
 	font-display: swap;
 	font-weight: 400;
 	font-stretch: normal;
 	font-style: italic;
-	src: url('/fonts/IosevkaCustom-Italic.woff2') format('woff2'), url('/fonts/IosevkaCustom-Italic.ttf') format('truetype');
+	src: url('/fonts/IosevkaAileTibo-Italic.woff2') format('woff2'), url('/fonts/IosevkaAileTibo-Italic.ttf') format('truetype');
 }
 
 @font-face {
-	font-family: 'Iosevka Custom Web';
+	font-family: 'IosevkaAileTibo Web';
 	font-display: swap;
 	font-weight: 700;
 	font-stretch: condensed;
 	font-style: normal;
-	src: url('/fonts/IosevkaCustom-CondensedBold.woff2') format('woff2'), url('/fonts/IosevkaCustom-CondensedBold.ttf') format('truetype');
+	src: url('/fonts/IosevkaAileTibo-CondensedBold.woff2') format('woff2'), url('/fonts/IosevkaAileTibo-CondensedBold.ttf') format('truetype');
 }
 
 @font-face {
-	font-family: 'Iosevka Custom Web';
+	font-family: 'IosevkaAileTibo Web';
 	font-display: swap;
 	font-weight: 700;
 	font-stretch: normal;
 	font-style: normal;
-	src: url('/fonts/IosevkaCustom-Bold.woff2') format('woff2'), url('/fonts/IosevkaCustom-Bold.ttf') format('truetype');
+	src: url('/fonts/IosevkaAileTibo-Bold.woff2') format('woff2'), url('/fonts/IosevkaAileTibo-Bold.ttf') format('truetype');
 }
 
 @font-face {
-	font-family: 'Iosevka Custom Web';
+	font-family: 'IosevkaAileTibo Web';
 	font-display: swap;
 	font-weight: 700;
 	font-stretch: condensed;
 	font-style: italic;
-	src: url('/fonts/IosevkaCustom-CondensedBoldItalic.woff2') format('woff2'), url('/fonts/IosevkaCustom-CondensedBoldItalic.ttf') format('truetype');
+	src: url('/fonts/IosevkaAileTibo-CondensedBoldItalic.woff2') format('woff2'), url('/fonts/IosevkaAileTibo-CondensedBoldItalic.ttf') format('truetype');
 }
 
 @font-face {
-	font-family: 'Iosevka Custom Web';
+	font-family: 'IosevkaAileTibo Web';
 	font-display: swap;
 	font-weight: 700;
 	font-stretch: normal;
 	font-style: italic;
-	src: url('/fonts/IosevkaCustom-BoldItalic.woff2') format('woff2'), url('/fonts/IosevkaCustom-BoldItalic.ttf') format('truetype');
+	src: url('/fonts/IosevkaAileTibo-BoldItalic.woff2') format('woff2'), url('/fonts/IosevkaAileTibo-BoldItalic.ttf') format('truetype');
+}
+
+
+@font-face {
+	font-family: 'IosevkaEtoileTibo Web';
+	font-display: swap;
+	font-weight: 400;
+	font-stretch: condensed;
+	font-style: normal;
+	src: url('/fonts/IosevkaEtoileTibo-Condensed.woff2') format('woff2'), url('/fonts/IosevkaEtoileTibo-Condensed.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaEtoileTibo Web';
+	font-display: swap;
+	font-weight: 400;
+	font-stretch: normal;
+	font-style: normal;
+	src: url('/fonts/IosevkaEtoileTibo-Regular.woff2') format('woff2'), url('/fonts/IosevkaEtoileTibo-Regular.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaEtoileTibo Web';
+	font-display: swap;
+	font-weight: 400;
+	font-stretch: condensed;
+	font-style: italic;
+	src: url('/fonts/IosevkaEtoileTibo-CondensedItalic.woff2') format('woff2'), url('/fonts/IosevkaEtoileTibo-CondensedItalic.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaEtoileTibo Web';
+	font-display: swap;
+	font-weight: 400;
+	font-stretch: normal;
+	font-style: italic;
+	src: url('/fonts/IosevkaEtoileTibo-Italic.woff2') format('woff2'), url('/fonts/IosevkaEtoileTibo-Italic.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaEtoileTibo Web';
+	font-display: swap;
+	font-weight: 700;
+	font-stretch: condensed;
+	font-style: normal;
+	src: url('/fonts/IosevkaEtoileTibo-CondensedBold.woff2') format('woff2'), url('/fonts/IosevkaEtoileTibo-CondensedBold.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaEtoileTibo Web';
+	font-display: swap;
+	font-weight: 700;
+	font-stretch: normal;
+	font-style: normal;
+	src: url('/fonts/IosevkaEtoileTibo-Bold.woff2') format('woff2'), url('/fonts/IosevkaEtoileTibo-Bold.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaEtoileTibo Web';
+	font-display: swap;
+	font-weight: 700;
+	font-stretch: condensed;
+	font-style: italic;
+	src: url('/fonts/IosevkaEtoileTibo-CondensedBoldItalic.woff2') format('woff2'), url('/fonts/IosevkaEtoileTibo-CondensedBoldItalic.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaEtoileTibo Web';
+	font-display: swap;
+	font-weight: 700;
+	font-stretch: normal;
+	font-style: italic;
+	src: url('/fonts/IosevkaEtoileTibo-BoldItalic.woff2') format('woff2'), url('/fonts/IosevkaEtoileTibo-BoldItalic.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaCodeTibo Web';
+	font-display: swap;
+	font-weight: 400;
+	font-stretch: condensed;
+	font-style: normal;
+	src: url('/fonts/IosevkaCodeTibo-Condensed.woff2') format('woff2'), url('/fonts/IosevkaCodeTibo-Condensed.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaCodeTibo Web';
+	font-display: swap;
+	font-weight: 400;
+	font-stretch: normal;
+	font-style: normal;
+	src: url('/fonts/IosevkaCodeTibo-Regular.woff2') format('woff2'), url('/fonts/IosevkaCodeTibo-Regular.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaCodeTibo Web';
+	font-display: swap;
+	font-weight: 400;
+	font-stretch: condensed;
+	font-style: italic;
+	src: url('/fonts/IosevkaCodeTibo-CondensedItalic.woff2') format('woff2'), url('/fonts/IosevkaCodeTibo-CondensedItalic.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaCodeTibo Web';
+	font-display: swap;
+	font-weight: 400;
+	font-stretch: normal;
+	font-style: italic;
+	src: url('/fonts/IosevkaCodeTibo-Italic.woff2') format('woff2'), url('/fonts/IosevkaCodeTibo-Italic.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaCodeTibo Web';
+	font-display: swap;
+	font-weight: 700;
+	font-stretch: condensed;
+	font-style: normal;
+	src: url('/fonts/IosevkaCodeTibo-CondensedBold.woff2') format('woff2'), url('/fonts/IosevkaCodeTibo-CondensedBold.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaCodeTibo Web';
+	font-display: swap;
+	font-weight: 700;
+	font-stretch: normal;
+	font-style: normal;
+	src: url('/fonts/IosevkaCodeTibo-Bold.woff2') format('woff2'), url('/fonts/IosevkaCodeTibo-Bold.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaCodeTibo Web';
+	font-display: swap;
+	font-weight: 700;
+	font-stretch: condensed;
+	font-style: italic;
+	src: url('/fonts/IosevkaCodeTibo-CondensedBoldItalic.woff2') format('woff2'), url('/fonts/IosevkaCodeTibo-CondensedBoldItalic.ttf') format('truetype');
+}
+
+@font-face {
+	font-family: 'IosevkaCodeTibo Web';
+	font-display: swap;
+	font-weight: 700;
+	font-stretch: normal;
+	font-style: italic;
+	src: url('/fonts/IosevkaCodeTibo-BoldItalic.woff2') format('woff2'), url('/fonts/IosevkaCodeTibo-BoldItalic.ttf') format('truetype');
 }
 
 
 html {
-	font-family: 'Iosevka Custom Web';
+	font-family: 'IosevkaAileTibo Web';
+}
+
+h1,
+h2 {
+	font-family: 'IosevkaEtoileTibo Web';
+}
+
+code {
+	font-family: 'IosevkaCodeTibo Web';
 }
