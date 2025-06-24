@@ -228,3 +228,15 @@ h2 {
 code {
 	font-family: 'IosevkaCodeTibo Web';
 }
+
+article a {
+	text-decoration: underline;
+}
+
+article a:hover {
+	transform: translateY(-1px);
+}
+
+a:hover {
+	cursor: pointer;
+}
