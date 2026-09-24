@@ -101,3 +101,6 @@ showTableOfContents = true
 groupByYear = false
 cardView = false
 cardViewScreenWidth = false
+
+[author]
+name = "Thibaut Vercueil"
