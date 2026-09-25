@@ -1,9 +1,12 @@
 +++
 date = '2026-09-24T14:24:35+01:00'
-title = 'How to store event-based data'
+title = 'Event-based data: a better way to store events'
 draft = true
 +++
 
+TL;DR: How to save 70% memory by choosing another intermediate representation for event-based data.
+
+## Intro 
 
 Event cameras generate an asyncrhonous stream of events, basically what you get out of the camera is a list of events, where one event consists of x,y coordinates, a timestamp and a polarity (boolean ON or OFF).
 
@@ -17,7 +20,7 @@ struct Event {
     uint64_t t; // timestamp in microsecond
 ```
 
-And the API gives us, in a callback some `std::vector<Event>`.
+And the API gives us in a callback some `std::vector<Event>`.
 
 
 Already we can see the layout is not great:
@@ -54,7 +57,7 @@ bit: 31                      23 22 21          11 10               0
 
 I can already hear you scream: "But it's terrible, you will have to unpack these everytime!!". The key idea: You don't! You don't have to unpack it, you can treat this as a single number that can index into an array.
 
-Let's call this value the event_id. It doesn't depend on time, it identifies an event coordinates and polarity. Let's say you want to build a time surface (which is just a map of the most recent activity).
+Let's call this value the EventIndex, or EventID. It doesn't depend on time, it identifies an event coordinates and polarity. Let's say you want to build a time surface (which is just a map of the most recent activity).
 
 
 ```
@@ -135,7 +138,13 @@ If we want to do branchless neigborhood check, for instance if we want to do a b
   }
 ```
 
-### The EVT3 bonus! 
+### The EVT3 wire format bonus! 
+
+When the data comes out of the camera, it's actually encoded in a more compact representation, usually EVT21 or EVT3. The first step is to decode this data.
+
+EVT32 uses 16 bits words where X and Y are already encoded on 11 bits.
+
+
 
 ### Wrapping up
 
@@ -157,6 +166,8 @@ If we want to do branchless neigborhood check, for instance if we want to do a b
 //!   runtime stride    x() -> `divl`           y() -> `divl`
 //!
 ```
+
+It's just a wrapper around a `u32` value.
 
 ```
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Debug, Default)]
@@ -236,7 +247,7 @@ I suggest to use only 32 bits for the timestamp, which gives us around 71 minute
 
 With our u32 x,y,p and u32 timestamp, we are now using 8 bytes! We divided by two the memory used by OpenEB, but we can do better!
 
-## Come one! Don't store all timestamps
+## Come on! Don't store all timestamps
 
 
 Multiple events triggers at the same timestamps, why bother storing the same timestamp everywhere, what we could do instead is *store only when the timestamp changes*.
@@ -285,8 +296,52 @@ Which gives:
 
 Which mean we can go from 16 Bytes per event to 4.75 Bytes per event! **The new representation is a 70% memory reduction versus orignal `vector<Event>` in openeb!**. But wait to see what comes next ! 
 
-Small recap:
+
+If we compare it to the baseline EVT3 wire format, we can see:
+
+| Representation | Size | Bytes/event | vs raw EVT3 |
+|---|---|---|---|
+| `vector<EventCD>` | 1,783.8 MB | 16.00 | 4.86x |
+| `EventId` + `TimeMarks` | 530.0 MB | 4.75 | 1.44x |
+| Raw EVT3 | 367.3 MB | 3.29 | 1.00x |
+
+We use only 1.44x while beeing fully decoded and so much more convinent for algorithms
+
+## Small recap
+
+```
+// A single u32 that packs polarity, x and y
+// this single number can be used to index directly into an array without unpacking
+struct EventID(u32); 
+    
+// A timestamp mark, used to define the start of a segment where events share the same timestamp
+// It's just the timestamp of the first event and the index at which it appears
+struct TimeMark {
+    ts_us: u32,       // timestamp, µs relative to the buffer origin
+    event_idx: u32,   // index of the first event with this timestamp
+}
+
+
+// A buffer of event is a list of ids, time marks, and a time offset. 
+struct EventBuf {
+    ids:   Vec<EventId>,    // 4 Bytes per event
+    marks: Vec<TimeMark>,   // 8 Bytes per *distinct timestamp*
+    t_origin: u64,          // absolute start, stored once
+}
+```
+
+## What about the consumers ? 
+
+I hear you cry: "But man ! Now I have to unpack my EventIDs to extract x,y,p and I have to deal with weird TimeMarks".
+
+I already tried to show that you don't necessarly to unpack the EventID, and the goal of this single `u32` is to use it to index directly into 1D arrays.
+
+For the timestamp, the `TimeMark` design allows to iterate over **segments**. And this is extremely useful and **More efficient** for certain processing. Here are some examples, with benchmarks:
 
 
 
-## What about the consumenrs ? 
+## Can we use it as a storge format ?
+
+Serde/Zstd
+
+
