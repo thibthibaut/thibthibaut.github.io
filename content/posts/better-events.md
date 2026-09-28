@@ -10,7 +10,7 @@ When working with event-based data, changing the event memory layout can save up
 
 ## Intro 
 
-Event cameras generate an asychronous stream of events, basically what you get out of the camera is a list of events, where one event consists of x,y coordinates, a timestamp and a polarity (boolean ON or OFF).
+Event cameras generate an asynchronous stream of events, basically what you get out of the camera is a list of events, where one event consists of x,y coordinates, a timestamp and a polarity (boolean ON or OFF).
 
 In Prophesee's [OpenEB library](https://github.com/prophesee-ai/openeb/blob/9003b5416676e78ba994d912087486cfa94fae73/sdk/modules/base/cpp/include/metavision/sdk/base/events/event2d.h#L30), an event is stored as:
 
@@ -48,7 +48,7 @@ Another library, EventCV, uses a [structure of array (SoA)](https://github.com/E
 
 ### Pack stuff
 
-Packing will save us a lot of memory, and t will come at the cost of unpacking, but let's give it a go:
+Packing will save us a lot of memory, and it will come at the cost of unpacking, but let's give it a go:
 
 Let's say our format will support sensors up to 2048x2048, that's a limitation but it also mean we can use only 11 bits for each coordinate, and because we need one bit for the polarity, the proposed layout is:
 
@@ -61,7 +61,7 @@ bit: 31                      23 22 21          11 10               0
 
 This way, a single event x, y, p sits comfortably into a single register. We also have 9 free bits that we can use to store information or metadata about an event, like an external trigger or something else.
 
-I can already hear you scream: "But it's terrible, you will have to unpack these everytime!!". The key idea: You don't! You don't have to unpack it if you treat this as a single number that can index into an array. You have 2 choices, eiher use the full 23-bit as an index into a 3D array [p][y][x], or mask the polarity bit and use the 22-bit integer to index into a row-major [y][x] array. Both of those array will have large **stride** (i.e empty space at the end of rows), but we'll discuss that later. 
+I can already hear you scream: "But it's terrible, you will have to unpack these every time!!". The key idea: You don't! You don't have to unpack it if you treat this as a single number that can index into an array. You have 2 choices, either use the full 23-bit as an index into a 3D array [p][y][x], or mask the polarity bit and use the 22-bit integer to index into a row-major [y][x] array. Both of those array will have large **stride** (i.e empty space at the end of rows), but we'll discuss that later. 
 
 Let's call this value the `EventID` (for event index), it doesn't depend on time, it identifies an event coordinates and polarity. Let's say you want to build a surface of active events (which is just a map of the most recent activity).
 
@@ -100,7 +100,7 @@ So basically by storing both X and Y, row-major, on 11 bits we are using a strid
                                       └─ 22 bits, no field boundary
 ```
 
-If we want to do branchless neigborhood check, for instance if we want to do a background activity filter by looking at the 8-neigbor of events, we can use STRIDE=width+2, to add two more columns and and two more rows in our arrays. This way an algorithm that checks the neigbors doesn't have to do `if (x>WIDTH-1) etc...`, we can efficiently do: 
+If we want to do branchless neighborhood check, for instance if we want to do a background activity filter by looking at the 8-neighbor of events, we can use STRIDE=width+2, to add two more columns and two more rows in our arrays. This way an algorithm that checks the neighbors doesn't have to do `if (x>WIDTH-1) etc...`, we can efficiently do: 
 
 ```rust
   const S: i32 = WIDTH as i32 + 2;               // S is the Stride, with one guard column on each side
@@ -226,10 +226,10 @@ Unpacking x and y is obviously more costly when the stride is not a power of two
 ## What about timestamps ? 
 
 
-The orginal OpenEB `Event` stores timestamp as a i64 microseconds count. 63 bits is 
+The original OpenEB `Event` stores timestamp as a i64 microseconds count. 63 bits is 
 9223372036854775808 microseconds, that's more than 292 000 years !! It's extremely wasteful to store these many bits for every event.
 
-I suggest to use only 32 bits for the timestamp, which gives us around 71 minutes. That's not much, but we can always store an absolute time offset alongside our recordings, and use chucks of 71 minutes.
+I suggest to use only 32 bits for the timestamp, which gives us around 71 minutes. That's not much, but we can always store an absolute time offset alongside our recordings, and use chunks of 71 minutes.
 
 With our u32 packing x,y,p and u32 timestamp, we are now using 8 bytes per events! We divided by two the memory used by OpenEB, but we can do better!
 
@@ -246,7 +246,7 @@ struct TimeMark {
 }
 ```
 
-And store event buffers as event ids (x,y,p) and time marks, that'simply a Run-Length Encoding format (RLE).
+And store event buffers as event ids (x,y,p) and time marks, that's simply a Run-Length Encoding format (RLE).
 
 ```
 struct EventBuf {
@@ -256,7 +256,7 @@ struct EventBuf {
 }
 ```
 
-For this to work, we need to have long *segments* of events with the same timestamp. This is very data-dependant, but on a very small test on a single recording we can see: 
+For this to work, we need to have long *segments* of events with the same timestamp. This is very data-dependent, but on a very small test on a single recording we can see: 
 
 
 todo(add svg)
@@ -271,7 +271,7 @@ Which gives:
 | **id + 8 B marks** | 4.75 |
 
 
-Which means we can go from 16 Bytes per event to 4.75 Bytes per event! **The new representation is a 70% memory reduction versus the orignal `vector<Event>` in OpenEB!**.
+Which means we can go from 16 Bytes per event to 4.75 Bytes per event! **The new representation is a 70% memory reduction versus the original `vector<Event>` in OpenEB!**.
 
 If we compare it to the baseline EVT3 wire format, we can see:
 
@@ -281,7 +281,7 @@ If we compare it to the baseline EVT3 wire format, we can see:
 | `EventId` + `TimeMarks` | 530.0 MB | 4.75 | 1.44x |
 | Raw EVT3 | 367.3 MB | 3.29 | 1.00x |
 
-We use only 1.44x while being fully decoded and so much more convinent for algorithms
+We use only 1.44x while being fully decoded and so much more convenient for algorithms
 
 ## Small recap
 
@@ -310,7 +310,7 @@ struct EventBuf {
 
 I hear you cry: "But man ! Now I have to unpack my EventIDs to extract x,y,p and I have to deal with weird TimeMarks".
 
-I already tried to show that you don't necessarly need to unpack the EventIDs, and the goal of this single `u32` is to use it to index directly into 1D arrays.
+I already tried to show that you don't necessarily need to unpack the EventIDs, and the goal of this single `u32` is to use it to index directly into 1D arrays.
 
 
 For the timestamp, the `TimeMark` design allows to iterate over **segments**. This is very useful and can be **more efficient** for certain processing. Here is an example of how to compute a time-binned histogram (voxel):
@@ -340,7 +340,7 @@ for (ts, ids) in buf.segments() { // a segment returns one timestamp (ts) and a 
 
 ## Benchmarks
 
-I ran a few benchmarks on a single recording just to show that this API makes sense. A more complete benchmark on more data is definetly needed to draw conclusions.
+I ran a few benchmarks on a single recording just to show that this API makes sense. A more complete benchmark on more data is definitely needed to draw conclusions.
 
 
 I compared OpenEB array of structure, EventCV structure of array, and this EventBuf implementation:
