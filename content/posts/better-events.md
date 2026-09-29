@@ -171,7 +171,7 @@ So basically, by storing both X and Y row-major on 11 bits each, we are using a 
                                       └─ 22 bits, indexes directly into a pixel array
 ```
 
-If we want to do branchless neighborhood checks, for instance for a background activity filter that looks at the 8 neighbors of each event, we can use STRIDE=width+2 to add two more columns to our arrays. This way, an algorithm that checks the neighbors doesn't have to do `if (x>WIDTH-1) etc...`. Instead, we can efficiently do: 
+If we want to do branchless neighborhood checks, for instance for a background activity filter that looks at the 8 neighbors of each event, we can use STRIDE=width+2 to add two more columns to our arrays. This way, an algorithm that checks the neighbors doesn't have to do `if (x > 0 && x < WIDTH-1) etc...`. Instead, we can efficiently do: 
 
 ```rust
   const S: i32 = WIDTH as i32 + 2;                       // S is the Stride, with one guard column on each side
