@@ -1,8 +1,9 @@
 +++
-date = '2026-09-24T14:24:35+01:00'
+date = '2026-09-29T14:24:35+01:00'
 title = 'Event-based data: a better way to represent events'
-draft = true
 +++
+
+{{< katex >}}
 
 When working with event-based data, changing the event memory layout can save up to 70% memory while making event-based algorithms faster.
 
@@ -41,14 +42,14 @@ total  16 bytes
 
 One event is 16 bytes, with 2 bytes used just for padding! That's **128 bits per event**! An event camera can generate millions of events per second, so the memory footprint of a chunk of events can be huge and hurt the performance of algorithms.
 
-Another library, EventCV, uses a [structure of array (SoA)](https://github.com/EventLAB-Team/eventcv/blob/5cc1ae1b404de6f397b9fa72399be5a3925bb4be/crates/eventcv-core/src/lib.rs#L74) where x, y, p, and t each live in their own array. That eliminates padding so the footprint is 13 bytes per event. That's an improvement, but we can do way better!
+Another library, EventCV, uses a [structure of arrays (SoA)](https://github.com/EventLAB-Team/eventcv/blob/5cc1ae1b404de6f397b9fa72399be5a3925bb4be/crates/eventcv-core/src/lib.rs#L74) where x, y, p, and t each live in their own array. That eliminates padding, so the footprint is 13 bytes per event (2 + 2 + 1 + 8, with p stored as a 1-byte bool). That's an improvement, but we can do way better!
 
 ## How can it be improved?
 
 
 ### Pack stuff
 
-Packing will save us a lot of memory, and it will come at the cost of unpacking, but let's give it a go:
+Packing will save a lot of memory, but it comes at the cost of unpacking. Let's give it a go anyway:
 
 Let's say our format supports sensors up to 2048x2048. That's a limitation, but it also means we can use only 11 bits for each coordinate, and because we need one bit for the polarity, the proposed layout is:
 
@@ -59,11 +60,11 @@ bit: 31                      23 22 21          11 10               0
      +-------------------------+--+---------------+----------------+
 ```
 
-This way, a single event x, y, p fits comfortably in a single register. We also have 9 free bits that we can use to store information or metadata about an event, like an external trigger or something else.
+We also have 9 free bits that we can use to store information or metadata about an event, like an external trigger or something else.
 
-I can already hear you scream: "But it's terrible, you will have to unpack these every time!". The key idea: You don't! You don't have to unpack it if you treat this as a single number that can index into an array. You have 2 choices: either use the full 23-bit value as an index into a 3D array [p][y][x] (and if you decide that the 9 LSBs are zeros, you don't even need to mask anything), or mask the polarity bit and use the 22-bit integer to index into a row-major [y][x] array.  Both of those arrays will have a large **stride** (i.e. empty space at the end of rows), but we'll discuss that later. 
+I can already hear you scream: "But it's terrible, you will have to unpack these every time!" The key idea: You don't! You don't have to unpack it if you treat this as a single number that can index into an array. You have 2 choices: either use the full 23-bit value as an index into a 3D array [p][y][x] (and if you decide that the 9 MSBs are zeros, you don't even need to mask anything), or mask the polarity bit and use the 22-bit integer to index into a row-major [y][x] array. Both of those arrays will have a **stride** of 2048, which means empty space at the end of each row, but we'll discuss that later. 
 
-Let's call this value the `EventID` (for event index). It doesn't depend on time; it identifies an event's coordinates and polarity. Let's say you want to build a surface of active events (which is just a map of the most recent activity).
+Let's call this value the `EventId`. It doesn't depend on time, it identifies an event's coordinates and polarity. Let's say you want to build a surface of active events (which is just a map of the most recent activity).
 
 
 ```rust
@@ -75,63 +76,27 @@ const STRIDE: usize = 2048;      // the EventId's own row stride
 // Here we ignore polarity, but we could have a 2-channel SAE, one for each polarity
 let mut sae: Vec<u32> = vec![0; H * STRIDE];
 
-// Write the SAE. Never allocates, never blocks, never reads.
-loop {
-    for (id, ts) in camera.next_event() { // Note: this is a fake API, we'll see later how to iterate over events
-        // The id packs polarity, y and x. Masking off the polarity bit
-        // leaves y * 2048 + x -- already a row-major pixel index, so the
-        // event IS the address. No unpacking, no y * width + x.
-        sae[id & PIXEL_MASK] = ts;
-    }
+for (id, ts) in camera.next_event() { // Note: this is a fake API, we'll see later how to iterate over events
+    // The id packs polarity, y and x. Masking off the polarity bit
+    // leaves y * 2048 + x -- already a row-major pixel index, so the
+    // event IS the address. No unpacking, no y * width + x.
+    sae[id & PIXEL_MASK] = ts;
 }
 ```
-
-
-So basically, by storing both X and Y row-major on 11 bits each, we are using a stride of 2¹¹, i.e. 2048. This is great, but we can actually adapt this stride according to our needs. For instance, if we want to index directly into an array we can use y*width+x. In this case our layout becomes:
-
-```
- Adapted stride (=width)  id & PIXEL_MASK  ==  y * width + x
-
-  31            23 22 21                             0
- ┌────────────────┬──┬────────────────────────────────┐
- │      free      │p │          y * width + x         │
- └────────────────┴──┴────────────────────────────────┘
-                      └───────────────┬───────────────┘
-                                      └─ 22 bits, indexes directly into a pixel array
-```
-
-If we want to do branchless neighborhood checks, for instance for a background activity filter that looks at the 8 neighbors of each event, we can use STRIDE=width+2 to add two more columns and two more rows to our arrays. This way, an algorithm that checks the neighbors doesn't have to do `if (x>WIDTH-1) etc...`, instead, we can efficiently do: 
-
-```rust
-  const S: i32 = WIDTH as i32 + 2;               // S is the Stride, with one guard column on each side
-  let p = (y as i32 + 1) * S + (x as i32 + 1);   // pixel index, offset +1 row, +1 column for the guards
-  let t = ts + DT;                               // biased clock so that empty cells (0) never match
-  let mut hit = false;
-  for o in [-1, 1, -S, S, -S - 1, -S + 1, S - 1, S + 1] {
-      hit |= t.wrapping_sub(sae[(p + o) as usize]) < DT;
-  }
-  sae[p as usize] = t;
-```
-
-
-The diagrams below try to represent those different buffer layouts depending on the stride:
-
-
-![Architecture diagram](/better-events-diagrams.svg)
 
 
 #### The EVT3 wire format bonus! 
 
 When the data comes out of the camera, it's actually encoded in a more compact representation, usually EVT2.1 or EVT3. The first step is to decode this data.
 
-EVT3 uses 16-bit words where, sometimes, X and Y are already encoded on 11 bits, so packing an event can become a single `OR`.
+EVT3 uses 16-bit words, and in some word types X and Y are already stored as plain 11-bit integers, so packing an event can become a single `OR`.
 
-I don't want to go into too much detail about the decoder in this article, but the main idea is that EVT3 already gives this 2048 upper bound for the sensor resolution. 
+I don't want to go into too much detail about the decoder in this article, but the main idea is that EVT3 already imposes this 2048 upper bound for the sensor resolution. 
 
 
-#### Wrapping up
+#### The final EventId
 
-So finally, the decoded event representation is encoded in a 32-bit integer as: 
+So finally, the decoded event is packed into a 32-bit integer as: 
 
 `bit 22 = polarity | bits 21:0 = pixel = y * STRIDE + x`
 
@@ -193,8 +158,40 @@ impl<const STRIDE: u32> EventId<STRIDE> {
 
 ### Picking a stride
 
-By making STRIDE a const generic, defaulting to 2048, we can choose the stride at compile time,
-and if we look at the generated x86 assembly, unpacking looks like this:
+So basically, by storing both X and Y row-major on 11 bits each, we are using a stride of \\(2^{11}\\), i.e. 2048. This is great, but we can actually adapt this stride according to our needs. For instance, if we want to index directly into a compact array we can use y*width+x. In this case our layout becomes:
+
+```
+ Adapted stride (=width)  id & PIXEL_MASK  ==  y * width + x
+
+  31            23 22 21                             0
+ ┌────────────────┬──┬────────────────────────────────┐
+ │      free      │p │          y * width + x         │
+ └────────────────┴──┴────────────────────────────────┘
+                      └───────────────┬───────────────┘
+                                      └─ 22 bits, indexes directly into a pixel array
+```
+
+If we want to do branchless neighborhood checks, for instance for a background activity filter that looks at the 8 neighbors of each event, we can use STRIDE=width+2 to add two more columns to our arrays. This way, an algorithm that checks the neighbors doesn't have to do `if (x>WIDTH-1) etc...`. Instead, we can efficiently do: 
+
+```rust
+  const S: i32 = WIDTH as i32 + 2;                       // S is the Stride, with one guard column on each side
+  let pixel_idx = (y as i32 + 1) * S + (x as i32 + 1);   // pixel index, offset +1 row, +1 column for the guards
+  let t = ts + DT;                                       // biased clock so that empty cells (0) never match
+  let mut hit = false;
+  for o in [-1, 1, -S, S, -S - 1, -S + 1, S - 1, S + 1] {
+      hit |= t.wrapping_sub(sae[(pixel_idx + o) as usize]) < DT;
+  }
+  sae[pixel_idx as usize] = t;
+```
+
+
+The diagrams below try to represent those different buffer layouts depending on the stride:
+
+
+![Architecture diagram](/better-events-diagrams.svg)
+
+
+Since STRIDE is a const generic (defaulting to 2048), the compiler knows it at compile time. Here's what unpacking looks like in x86 assembly:
 
 
 **Stride 2048:** 
@@ -223,23 +220,22 @@ x_1280:  and  eax, 4194303        ; drop polarity
 
 Unpacking x and y is obviously more costly when the stride is not a power of two, but the whole point of this layout is to never unpack and use the EventId directly to index memory.
 
-## What about timestamps?
+### What about timestamps?
 
 
-The original OpenEB `Event` stores the timestamp as an i64 microsecond count. 63 bits is 
-9223372036854775808 microseconds; that's more than 292 000 years!! It's extremely wasteful to store this many bits for every event.
+The original OpenEB `Event` stores the timestamp as an i64 microsecond count. 63 bits is \\(2^{63} \approx 9.2 \times 10^{18}\\) microseconds, that's more than 292,000 years!! It's extremely wasteful to store this many bits for every event.
 
 I suggest using only 32 bits for the timestamp, which gives us around 71 minutes. That's not much, but we can always store an absolute time offset alongside our recordings, and use chunks of 71 minutes.
 
 With our u32 packing x,y,p and u32 timestamp, we are now using 8 bytes per event! We halved the memory used by OpenEB, but we can do better!
 
-## Come on! Don't store all timestamps
+### Come on! Don't store all timestamps
 
 Multiple events can share the same timestamp. Why bother storing the same timestamp everywhere? What we could do instead is *store it only when the timestamp changes*.
 
 The idea is to define a `TimeMark` such that: events are sorted by timestamp, and each TimeMark points to the first event of a contiguous timestamp segment.
 
-```
+```rust
 struct TimeMark {
     ts_us: u32,       // timestamp, µs relative to the buffer origin
     event_idx: u32,   // index of the first event with this timestamp
@@ -248,46 +244,47 @@ struct TimeMark {
 
 And we store event buffers as event ids (x,y,p) and time marks, it's kind of a Run-Length Encoding (RLE) format.
 
-```
+```rust 
 struct EventBuf {
-    ids:   Vec<EventId>,    // 4 Bytes per event
-    marks: Vec<TimeMark>,   // 8 Bytes per *distinct timestamp*
+    ids:   Vec<EventId>,    // 4 bytes per event
+    marks: Vec<TimeMark>,   // 8 bytes per *distinct timestamp*
     t_origin: u64,          // absolute start, stored once
 }
 ```
 
 For this to work, we need to have long *segments* of events with the same timestamp. This is very data-dependent, but on a very small test on a single recording we can see: 
 
-![Statistics of segment lenght](/segment_lengths.svg)
+![Statistics of segment length](/segment_lengths.svg)
 
-Which gives: 
+On this recording (12.5 s of driving footage from a 1280x720 EVT3 sensor, 111 million events), a segment holds 10.6 events on average. Each event costs 4 bytes for its `EventId`, and each segment costs one 8-byte `TimeMark`, shared by all its events. So on average we pay \\(4 + 8 / 10.6 \approx 4.75\\) bytes per event, which gives:
 
 | Layout | Bytes/event |
 |---|---:|
 | vector of OpenEB `Event` | 16.00 |
-| event_id + `u64` per event (OpenEB-ish) | 12.00 |
-| event_id + `u32` per event | 8.00 |
-| **event_id + TimeMarks** | 4.75 |
+| SoA of EventCV | 13.00 |
+| `EventID` + `u64` per event (OpenEB-ish) | 12.00 |
+| `EventID`+ `u32` per event | 8.00 |
+| **`EventID`+ TimeMarks** | **~4.75** |
 
 
-Which means we can go from 16 Bytes per event to 4.75 Bytes per event! **The new representation is a 70% memory reduction versus the original `vector<Event>` in OpenEB!**
+Which means we can go from 16 bytes per event to 4.75 bytes per event! **The new representation is a 70% memory reduction versus the original `vector<Event>` in OpenEB!**
 
 If we compare it to the baseline EVT3 wire format, we can see:
 
 | Representation | Size | Bytes/event | vs raw EVT3 |
 |---|---|---|---|
 | `vector<Event>` | 1,783.8 MB | 16.00 | 4.86x |
-| `EventId` + `TimeMarks` | 530.0 MB | 4.75 | 1.44x |
-| Raw EVT3 | 367.3 MB | 3.29 | 1.00x |
+| `EventId` + `TimeMarks` | 530.0 MB | ~4.75 | 1.44x |
+| Raw EVT3 | 367.3 MB | ~3.29 | 1.00x |
 
-We use only 1.44x more memory while being fully decoded and so much more convenient for algorithms. It also means that we can use this format to serialize data (e.g using Serde) and store decoded recordings on disk.
+We use only 1.44x the size of raw EVT3 while being fully decoded and so much more convenient for algorithms. It also means that we can use this format to serialize data (e.g. using Serde) and store decoded recordings on disk.
 
 ## Small recap
 
 ```rust
 // A single u32 that packs polarity, x and y
 // this single number can be used to index directly into an array without unpacking
-struct EventID(u32); 
+struct EventId(u32); 
     
 // A timestamp mark, used to define the start of a segment where events share the same timestamp
 // It's just the timestamp of the first event and the index at which it appears
@@ -299,19 +296,19 @@ struct TimeMark {
 
 // A buffer of events is a list of ids, time marks, and a time offset. 
 struct EventBuf {
-    ids:   Vec<EventId>,    // 4 Bytes per event
-    marks: Vec<TimeMark>,   // 8 Bytes per *distinct timestamp*
+    ids:   Vec<EventId>,    // 4 bytes per event
+    marks: Vec<TimeMark>,   // 8 bytes per *distinct timestamp*
     t_origin: u64,          // absolute start, stored once
 }
 ```
 
 ## What about the consumers?
 
-I hear you cry: "But man! Now I have to unpack my EventIDs to extract x,y,p and I have to deal with weird TimeMarks".
+I hear you cry: "But man! Now I have to unpack my EventIds to extract x,y,p and I have to deal with weird TimeMarks".
 
-I've already tried to show that you don't necessarily need to unpack the EventIDs, and the goal of this single `u32` is to use it to index directly into 1D arrays.
+I've already tried to show that you don't necessarily need to unpack the EventIds, and the goal of this single `u32` is to use it to index directly into 1D arrays.
 
-For the timestamp, the `TimeMark` design allows us to iterate over **segments**. This is very useful and can be **more efficient** for certain processing. Here is an example of how to compute a time-binned histogram (voxel):
+For the timestamp, the `TimeMark` design allows us to iterate over **segments**. This is very useful and can be **more efficient** for some kinds of processing. Here is an example of how to compute a time-binned histogram (voxel):
 
 
 ```rust
@@ -322,7 +319,9 @@ let mut voxels = vec![0i32; BINS * PLANE]; // output voxel
 let t0 = buf.first_ts();
 let span = (buf.last_ts() + 1 - t0) as usize;
 
-for (ts, ids) in buf.segments() { // a segment returns one timestamp (ts) and a slice of EventIds (ids).
+// a *segment* returns one timestamp (ts)
+// and a slice of EventIds (ids).
+for (ts, ids) in buf.segments() { 
     // Every event in a segment shares `ts`, so the bin is computed
     // once per segment (~11 events on average), not once per event.
     let bin = (ts - t0) as usize * BINS / span;
@@ -338,10 +337,9 @@ for (ts, ids) in buf.segments() { // a segment returns one timestamp (ts) and a 
 
 ## Benchmarks
 
-I ran a few benchmarks on a single recording just to show that this API makes sense. A more complete benchmark on more data is definitely needed to draw conclusions.
+I ran a few benchmarks on a single recording just to show that this API makes sense and doesn't degrade performance. A more complete benchmark on more data is definitely needed to draw conclusions.
 
-
-I compared OpenEB's array of structures, EventCV's structure of arrays, and this EventBuf implementation:
+I compared OpenEB's array of structures (AoS), EventCV's structure of arrays (SoA), and this EventBuf implementation:
 
 Size of the container for the whole recording:
 
@@ -354,10 +352,10 @@ Size of the container for the whole recording:
 
 Then I ran some classic event-based algorithms, all with the same Rust runtime but changing only the event representation, to see whether this new representation has an impact.
 
-Times are total milliseconds over 417 slices of 30 ms, on a single core of a Ryzen 7 PRO 7840U, with every implementation reusing its buffers and producing output bit-identical to EventCV's. EventBuf is fastest in five of six algorithms, while using 3.4x less memory than Vec<Event> and 2.7x less than EventCV.
+Times are total milliseconds over 417 slices of 30 ms, on a single core of a Ryzen 7 PRO 7840U, with every implementation reusing its buffers and producing output bit-identical to EventCV's. EventBuf is fastest in five of six algorithms. 
 
 
-| Algorithm | `EventBuf` | `Vec<Event>` | EventCV SoA |
+| Algorithm (ms) | `EventBuf` | `Vec<Event>` | EventCV SoA |
 |---|---:|---:|---:|
 | Background activity filter | **1500** | 3652 | 2627 |
 | Refractory filter | **312** | 577 | 734 |
@@ -366,7 +364,6 @@ Times are total milliseconds over 417 slices of 30 ms, on a single core of a Ryz
 | Voxel grid (9 bins, 30ms) | **1961** | 3224 | 3354 |
 | Time surface (tau=30ms) | **1658** | 1789 | 1811 |
 
-
 ## Conclusion
 
-This is a just an experiment and it diserves more tests and benchmarks with more data and more alogrithms, which I may cover in the future, but it shows that a simple design can reduce the memory needs of decoded events from 16 bytes per events to something like 4-5 bytes per events.
+This is just an experiment and it deserves more tests and benchmarks with more data and more algorithms, which I may cover in the future. The decoding performance (i.e going from wire-format to this one) needs to be assed as well. Anyways, I think it still shows that a simple design can reduce the memory needs of decoded events from 16 bytes per event to something like 4-5 bytes per event while still beeing usable and performant.
