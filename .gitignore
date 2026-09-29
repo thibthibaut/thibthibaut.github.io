@@ -1,2 +1,6 @@
 /public/
 /resources/_gen/
+*.raw
+/content/posts/evbench/
+/content/posts/benchmark_brief.md
+/content/posts/benchmark_report.md
