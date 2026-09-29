@@ -267,7 +267,7 @@ Which gives:
 | vector of OpenEB `Event` | 16.00 |
 | event_id + `u64` per event (OpenEB-ish) | 12.00 |
 | event_id + `u32` per event | 8.00 |
-| **id + 8 B marks** | 4.75 |
+| **event_id + TimeMarks** | 4.75 |
 
 
 Which means we can go from 16 Bytes per event to 4.75 Bytes per event! **The new representation is a 70% memory reduction versus the original `vector<Event>` in OpenEB!**
@@ -280,7 +280,7 @@ If we compare it to the baseline EVT3 wire format, we can see:
 | `EventId` + `TimeMarks` | 530.0 MB | 4.75 | 1.44x |
 | Raw EVT3 | 367.3 MB | 3.29 | 1.00x |
 
-We use only 1.44x more memory while being fully decoded and so much more convenient for algorithms.
+We use only 1.44x more memory while being fully decoded and so much more convenient for algorithms. It also means that we can use this format to serialize data (e.g using Serde) and store decoded recordings on disk.
 
 ## Small recap
 
@@ -310,7 +310,6 @@ struct EventBuf {
 I hear you cry: "But man! Now I have to unpack my EventIDs to extract x,y,p and I have to deal with weird TimeMarks".
 
 I've already tried to show that you don't necessarily need to unpack the EventIDs, and the goal of this single `u32` is to use it to index directly into 1D arrays.
-
 
 For the timestamp, the `TimeMark` design allows us to iterate over **segments**. This is very useful and can be **more efficient** for certain processing. Here is an example of how to compute a time-binned histogram (voxel):
 
@@ -367,3 +366,7 @@ Times are total milliseconds over 417 slices of 30 ms, on a single core of a Ryz
 | Voxel grid (9 bins, 30ms) | **1961** | 3224 | 3354 |
 | Time surface (tau=30ms) | **1658** | 1789 | 1811 |
 
+
+## Conclusion
+
+This is a just an experiment and it diserves more tests and benchmarks with more data and more alogrithms, which I may cover in the future, but it shows that a simple design can reduce the memory needs of decoded events from 16 bytes per events to something like 4-5 bytes per events.
