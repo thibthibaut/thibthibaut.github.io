@@ -61,7 +61,7 @@ bit: 31                      23 22 21          11 10               0
 
 This way, a single event x, y, p fits comfortably in a single register. We also have 9 free bits that we can use to store information or metadata about an event, like an external trigger or something else.
 
-I can already hear you scream: "But it's terrible, you will have to unpack these every time!!". The key idea: You don't! You don't have to unpack it if you treat this as a single number that can index into an array. You have 2 choices: either use the full 23-bit value as an index into a 3D array [p][y][x], or mask the polarity bit and use the 22-bit integer to index into a row-major [y][x] array. Both of those arrays will have a large **stride** (i.e. empty space at the end of rows), but we'll discuss that later. 
+I can already hear you scream: "But it's terrible, you will have to unpack these every time!". The key idea: You don't! You don't have to unpack it if you treat this as a single number that can index into an array. You have 2 choices: either use the full 23-bit value as an index into a 3D array [p][y][x] (and if you decide that the 9 LSBs are zeros, you don't even need to mask anything), or mask the polarity bit and use the 22-bit integer to index into a row-major [y][x] array.  Both of those arrays will have a large **stride** (i.e. empty space at the end of rows), but we'll discuss that later. 
 
 Let's call this value the `EventID` (for event index). It doesn't depend on time; it identifies an event's coordinates and polarity. Let's say you want to build a surface of active events (which is just a map of the most recent activity).
 
@@ -97,10 +97,10 @@ So basically, by storing both X and Y row-major on 11 bits each, we are using a 
  │      free      │p │          y * width + x         │
  └────────────────┴──┴────────────────────────────────┘
                       └───────────────┬───────────────┘
-                                      └─ 22 bits, no field boundary
+                                      └─ 22 bits, indexes directly into a pixel array
 ```
 
-If we want to do branchless neighborhood checks, for instance for a background activity filter that looks at the 8 neighbors of each event, we can use STRIDE=width+2 to add two more columns and two more rows to our arrays. This way, an algorithm that checks the neighbors doesn't have to do `if (x>WIDTH-1) etc...`; instead, we can efficiently do: 
+If we want to do branchless neighborhood checks, for instance for a background activity filter that looks at the 8 neighbors of each event, we can use STRIDE=width+2 to add two more columns and two more rows to our arrays. This way, an algorithm that checks the neighbors doesn't have to do `if (x>WIDTH-1) etc...`, instead, we can efficiently do: 
 
 ```rust
   const S: i32 = WIDTH as i32 + 2;               // S is the Stride, with one guard column on each side
@@ -144,7 +144,7 @@ The final struct is just a wrapper around a `u32`:
 pub struct EventId<const STRIDE: u32 = 2048>(u32); // Use 2048 as default stride
 ```
 
-Here's an example implementation; I omitted `#[inline(always)]` and tried to keep it simple.
+Here's an example implementation, I omitted `#[inline(always)]` and tried to keep it simple:
 
 ```rust 
 impl<const STRIDE: u32> EventId<STRIDE> {
@@ -246,7 +246,7 @@ struct TimeMark {
 }
 ```
 
-And we store event buffers as event ids (x,y,p) and time marks; that's simply a Run-Length Encoding (RLE) format.
+And we store event buffers as event ids (x,y,p) and time marks, it's kind of a Run-Length Encoding (RLE) format.
 
 ```
 struct EventBuf {
@@ -258,8 +258,7 @@ struct EventBuf {
 
 For this to work, we need to have long *segments* of events with the same timestamp. This is very data-dependent, but on a very small test on a single recording we can see: 
 
-
-todo(add svg)
+![Statistics of segment lenght](/segment_lengths.svg)
 
 Which gives: 
 
@@ -285,7 +284,7 @@ We use only 1.44x more memory while being fully decoded and so much more conveni
 
 ## Small recap
 
-```
+```rust
 // A single u32 that packs polarity, x and y
 // this single number can be used to index directly into an array without unpacking
 struct EventID(u32); 
