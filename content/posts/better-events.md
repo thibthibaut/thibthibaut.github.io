@@ -1,5 +1,5 @@
 +++
-date = '2026-09-29T14:24:35+01:00'
+date = '2026-09-29T13:39:37+02:00'
 title = 'Event-based data: a better way to represent events'
 +++
 
